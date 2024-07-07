@@ -1051,6 +1051,7 @@ const verb = VERSION.major == 1 && VERSION.minor < 11
                 Data.SampledFrom(0:10),
                 Data.filter(iseven, Data.Just(0:10)),
                 Data.map(sqrt, Data.Just(0:10)),
+                Data.map(+, Data.Just(1), Data.Just(2)),
                 Data.Just(1),
                 Data.Floats() | Data.Booleans(),
                 Data.WeightedNumbers([.1, .2, .7]),
@@ -1149,21 +1150,41 @@ const verb = VERSION.major == 1 && VERSION.minor < 11
             end
         end
         @testset "map" begin
-            map_repr = repr("text/plain", map(sqrt, Data.Integers{UInt8}()))
-            @test occursin("Map", map_repr)
-            @test occursin("Integers{UInt8}", map_repr)
-            @test occursin("Float64", map_repr)
-            @test occursin("sqrt", map_repr)
-            @test begin
-                repr("text/plain", map(Data.Integers{UInt8}()) do i
-                    Data.produce!(Data.Just(i))
-                end)
-                true # dummy pass, this used to throw
+            @testset "single map" begin
+                map_repr = repr("text/plain", map(sqrt, Data.Integers{UInt8}()))
+                @test occursin("Map", map_repr)
+                @test occursin("Integers{UInt8}", map_repr)
+                @test occursin("Float64", map_repr)
+                @test occursin("sqrt", map_repr)
+                @test begin
+                    repr("text/plain", map(Data.Integers{UInt8}()) do i
+                        Data.produce!(Data.Just(i))
+                    end)
+                    true # dummy pass, this used to throw
+                end
+                @check max_examples=100 description="map" (f=map(abs, Data.Floats{Float64}())) -> begin
+                    str = repr("text/plain", map(sqrt, Data.Just(f)))
+                    exp = "sqrt($f)"
+                    occursin(exp, str)
+                end
             end
-            @check max_examples=100 description="map" (f=map(abs, Data.Floats{Float64}())) -> begin
-                str = repr("text/plain", map(sqrt, Data.Just(f)))
-                exp = "sqrt($f)"
-                occursin(exp, str)
+            @testset "multi map" begin
+                map_repr = repr("text/plain", map(+, Data.Integers{UInt8}(), Data.Integers{Int}()))
+                @test occursin("MultiMap", map_repr)
+                @test occursin("Integers{UInt8}", map_repr)
+                @test occursin("Integers{$Int}", map_repr)
+                @test occursin("+", map_repr)
+                @test begin
+                    repr("text/plain", map(Data.Integers{UInt8}()) do i
+                        Data.produce!(Data.Just(i))
+                    end)
+                    true # dummy pass, this used to throw
+                end
+                @check max_examples=100 description="map" (f=map(abs, Data.Floats{Float64}())) -> begin
+                    str = repr("text/plain", map(+, Data.Just(f), Data.Just(1.0)))
+                    exp = "+($f, 1.0)"
+                    occursin(exp, str)
+                end
             end
         end
         @testset "Just" begin
