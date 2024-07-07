@@ -208,7 +208,7 @@ function multimap_eltype(f, S::Type)
     # this is accessing internals again, but what can ya do :shrug:
     N = length(S.parameters)
     argtypes = foldr(Base.tuple_type_cons, ntuple(t -> Data.postype(S.parameters[t]), N); init=Tuple{})
-    Base.promote_op(splat(f), argtypes)
+    Base.promote_op(Base.splat(f), argtypes)
 end
 
 function Base.show(io::IO, mm::MultiMap)
